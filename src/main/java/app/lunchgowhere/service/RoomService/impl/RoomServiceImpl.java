@@ -1,6 +1,7 @@
 package app.lunchgowhere.service.RoomService.impl;
 
-import app.lunchgowhere.dto.LocationSubmission;
+import app.lunchgowhere.dto.request.LocationSubmission;
+import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.model.Room;
 import app.lunchgowhere.repository.RoomRepository;
 import app.lunchgowhere.service.RoomService.RoomService;
@@ -11,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 @Service
@@ -27,9 +30,7 @@ public class RoomServiceImpl implements RoomService {
         var exist = redisTemplate.opsForSet().isMember("user", message.getSender());
         if (Boolean.FALSE.equals(exist)) return false;
 
-        if (message.getReason().isEmpty() || message.getStoreName().isEmpty()) return false;
-
-        return true;
+        return !message.getReason().isEmpty() && !message.getStoreName().isEmpty();
     }
 
     @Override
@@ -44,7 +45,19 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public Room createRoom(Room room) {
+    public Room createRoom(RoomDto roomDto) {
+        var room = new Room();
+        room.setName(roomDto.getName());
+        room.setDescription(roomDto.getDescription());
+
+        //convert timestamp string to date
+        try {
+            var simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                    .parse(roomDto.getTargetTime());
+        } catch (Exception e) {
+            return null;
+        }
+
         return roomRepository.save(room);
     }
 
