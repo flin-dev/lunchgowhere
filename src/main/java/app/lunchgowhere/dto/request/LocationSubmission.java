@@ -1,10 +1,8 @@
-package app.lunchgowhere.dto;
+package app.lunchgowhere.dto.request;
 
 
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.web.util.HtmlUtils;
 
 @Data

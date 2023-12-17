@@ -1,6 +1,7 @@
 package app.lunchgowhere.controller;
 
-import app.lunchgowhere.dto.LocationSubmission;
+import app.lunchgowhere.dto.request.LocationSubmission;
+import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.exception.MessageException;
 import app.lunchgowhere.model.Room;
 import app.lunchgowhere.service.RoomService.RoomService;
@@ -77,11 +78,7 @@ public class RoomController {
     @ApiResponse(responseCode = "400", description = "Bad Request")
     @ApiResponse(responseCode = "500", description = "Internal Server Error")
     public ResponseEntity<Room> createRoom(@RequestParam RoomDto roomDto) {
-        Room room = new Room();
-        room.setName("test");
-        room.setDescription("test");
-        room.setTargetTime(new Date());
-        var savedRoom = roomService.createRoom(room);
+        var savedRoom = roomService.createRoom(roomDto);
         return ResponseEntity.ok(savedRoom);
     }
 
