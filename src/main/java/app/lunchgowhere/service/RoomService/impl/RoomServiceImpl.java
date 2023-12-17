@@ -52,8 +52,9 @@ public class RoomServiceImpl implements RoomService {
 
         //convert timestamp string to date
         try {
-            var simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+            var convertedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
                     .parse(roomDto.getTargetTime());
+            room.setTargetTime(convertedDate);
         } catch (Exception e) {
             return null;
         }
