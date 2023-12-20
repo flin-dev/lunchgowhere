@@ -31,4 +31,9 @@ public class Room extends AuditModel {
     @Column(name = "is_active", nullable = false)
     Boolean isActive;
 
+    //room owner
+    @OneToOne
+    @JoinColumn(name = "owner_id")
+    User roomOwner;
+
 }

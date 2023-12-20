@@ -1,10 +1,12 @@
 package app.lunchgowhere.service.RoomService.impl;
 
-import app.lunchgowhere.dto.request.LocationSubmission;
+import app.lunchgowhere.model.LocationSubmission;
+import app.lunchgowhere.dto.request.LocationSubmissionDto;
 import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.model.Room;
 import app.lunchgowhere.repository.RoomRepository;
 import app.lunchgowhere.service.RoomService.RoomService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,9 +14,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class RoomServiceImpl implements RoomService {
@@ -26,7 +28,7 @@ public class RoomServiceImpl implements RoomService {
     private RoomRepository roomRepository;
 
     @Override
-    public Boolean verifyLocation(LocationSubmission message) {
+    public Boolean verifyLocation(LocationSubmissionDto message) {
         var exist = redisTemplate.opsForSet().isMember("user", message.getSender());
         if (Boolean.FALSE.equals(exist)) return false;
 
@@ -62,5 +64,34 @@ public class RoomServiceImpl implements RoomService {
         return roomRepository.save(room);
     }
 
+    @Override
+    public Boolean closeRoom(String roomId, String Sender) {
+        var room = roomRepository.findById(Long.parseLong(roomId)).orElseThrow();
 
+        //check if sender the owner of the room
+        if (room.getRoomOwner().getUsername().equals(Sender)) {
+            room.setIsActive(false);
+            roomRepository.save(room);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public Optional<LocationSubmission> closeAndPickLocation(String roomId, String name) {
+        var result = this.closeRoom(roomId, name);
+
+        if (result) {
+            var room = roomRepository.findById(Long.parseLong(roomId)).orElseThrow();
+            var submissions = room.getLocationSubmissions();
+            var random = (int) (Math.random() * submissions.size());
+            var pickedLocation = submissions.get(random);
+            pickedLocation.setSelected(true);
+            roomRepository.save(room);
+
+            return Optional.of(pickedLocation);
+        }
+        return Optional.empty();
+    }
 }
