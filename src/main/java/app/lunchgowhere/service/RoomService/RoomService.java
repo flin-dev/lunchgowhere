@@ -25,4 +25,6 @@ public interface RoomService {
     Optional<LocationSubmission> closeAndPickLocation(String roomId, String name);
 
     LocationSubmission createLocationSubmission(LocationSubmissionDto locationSubmissionDto, String username);
+
+    List<LocationSubmission> getLocationSubmissions(Long roomId);
 }

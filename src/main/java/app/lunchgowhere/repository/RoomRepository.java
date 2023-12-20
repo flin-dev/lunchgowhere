@@ -11,4 +11,5 @@ public interface RoomRepository extends CrudRepository<Room, Long> {
 
    //define a pagable roomList with find all method
     Page<List<Room>> findAll(Pageable pageable);
+
 }

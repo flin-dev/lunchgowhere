@@ -10,7 +10,9 @@ import app.lunchgowhere.repository.RoomRepository;
 import app.lunchgowhere.service.RoomService.RoomService;
 import app.lunchgowhere.service.UserService;
 import jakarta.transaction.Transactional;
+import org.postgresql.util.PSQLException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -125,7 +127,20 @@ public class RoomServiceImpl implements RoomService {
         locationSubmission.setName(locationSubmissionDto.getName());
         locationSubmission.setSummiter(user);
         locationSubmission.setRoom(room);
+        locationSubmission.setSelected(false);
 
-        return locationSubmissionRepository.save(locationSubmission);
+        try {
+            locationSubmission = locationSubmissionRepository.save(locationSubmission);
+        } catch (DataIntegrityViolationException e) {
+            //catch ERROR: duplicate key value violates unique constraint
+            throw new RuntimeException("One user can only submit one location");
+        }
+
+        return locationSubmission;
+    }
+
+    @Override
+    public List<LocationSubmission> getLocationSubmissions(Long roomId) {
+        return locationSubmissionRepository.findByRoomId(roomId);
     }
 }

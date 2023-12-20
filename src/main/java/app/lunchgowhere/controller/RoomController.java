@@ -5,6 +5,7 @@ import app.lunchgowhere.dto.request.MessageDto;
 import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.exception.MessageException;
 import app.lunchgowhere.exception.RoomException;
+import app.lunchgowhere.model.LocationSubmission;
 import app.lunchgowhere.model.Room;
 import app.lunchgowhere.service.RoomService.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -84,8 +84,8 @@ public class RoomController {
         var savedRoom = roomService.createRoom(roomDto, username);
         return ResponseEntity.ok(savedRoom);
     }
-    @GetMapping("/room/{roomId}")
-    public ResponseEntity<Void> createLocationSubmission(@PathVariable Long roomId, @RequestBody LocationSubmissionDto locationSubmissionDto, HttpServletRequest request) {
+    @PostMapping("/room/{roomId}/locationSubmission")
+    public ResponseEntity<String> createLocationSubmission(@PathVariable Long roomId, @RequestBody LocationSubmissionDto locationSubmissionDto, HttpServletRequest request) {
         //TODO move to interceptor
         var sessionId = Objects.requireNonNull(WebUtils.getCookie(request, "sId")).getValue();
         if (sessionId == null) {
@@ -93,10 +93,24 @@ public class RoomController {
         }
         var username = redisTemplate.opsForValue().get("USERSESSION:" + sessionId);
         locationSubmissionDto.setRoomId(roomId);
-        var locationSubmission = roomService.createLocationSubmission(locationSubmissionDto, username);
-//        var savedRoom = roomService.createRoom(roomDto, username);
+        try {
+            roomService.createLocationSubmission(locationSubmissionDto, username);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
 
         return ResponseEntity.status(201).build();
+    }
+
+    @Operation(summary = "Get Location Submissions", description = "Get Location Submissions by roomId")
+    @ApiResponse(responseCode = "200", description = "Get Location Submissions successfully",
+            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = LocationSubmission.class))})
+    @ApiResponse(responseCode = "400", description = "Bad Request")
+    @ApiResponse(responseCode = "500", description = "Internal Server Error")
+    @GetMapping("/room/{roomId}/locationSubmissions")
+    public ResponseEntity<List<LocationSubmission>> getLocationSubmissions(@PathVariable Long roomId) {
+        var locationSubmissions = roomService.getLocationSubmissions(roomId);
+        return ResponseEntity.ok(locationSubmissions);
     }
 
 
@@ -145,13 +159,17 @@ public class RoomController {
     //capture subscribe event of /room/{roomId}/chat and set userId to redis ROOMID:ONLINE:USER capture online users
     @SubscribeMapping("/room/{roomId}/chat")
     public void subscribe(@DestinationVariable String roomId, Principal principal) throws Exception {
-        //check if room key exist in redis
-        var exist = redisTemplate.opsForValue().get("ROOM:" + roomId);
-        //add user to room's online user list
-        redisTemplate.opsForSet().add("ROOM:" + roomId + ":ONLINE", principal.getName());
-        //add roomId to user's joined room list
-        redisTemplate.opsForSet().add("USER:" + principal.getName() + ":ROOMS", roomId);
-        log.info("New user {} joined room {}", principal.getName(), roomId);
+        try {
+            //check if room key exist in redis
+            var exist = redisTemplate.opsForValue().get("ROOM:" + roomId);
+            //add user to room's online user list
+            redisTemplate.opsForSet().add("ROOM:" + roomId + ":ONLINE", principal.getName());
+            //add roomId to user's joined room list
+            redisTemplate.opsForSet().add("USER:" + principal.getName() + ":ROOMS", roomId);
+            log.info("New user {} joined room {}", principal.getName(), roomId);
+        } catch (Exception e) {
+            log.error("Subscribe error: {}", roomId);
+        }
     }
 
     @MessageExceptionHandler(RoomException.class)

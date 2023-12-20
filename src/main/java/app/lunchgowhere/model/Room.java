@@ -1,8 +1,11 @@
 package app.lunchgowhere.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Date;
 import java.util.List;
@@ -25,14 +28,18 @@ public class Room extends AuditModel {
     @Column(name = "target_time", nullable = false)
     Date targetTime;
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true,
+            fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @JsonIgnore
     List<LocationSubmission> locationSubmissions;
 
     @Column(name = "is_active", nullable = false)
     Boolean isActive;
 
     //room owner
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id")
     User roomOwner;
 
