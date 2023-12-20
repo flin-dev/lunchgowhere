@@ -1,5 +1,6 @@
 package app.lunchgowhere.interceptor;
 
+import app.lunchgowhere.util.Utils;
 import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -15,12 +16,12 @@ import java.util.Map;
 import java.util.Optional;
 
 @Component
-public class HandshakeHandler extends DefaultHandshakeHandler{
+public class WebSocketHandshakeHandler extends DefaultHandshakeHandler{
 
     private RedisTemplate<String, String> redisTemplate; // Inject RedisTemplate
 
     @Autowired
-    public HandshakeHandler(RedisTemplate<String, String> redisTemplate) {
+    public WebSocketHandshakeHandler(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
@@ -33,7 +34,7 @@ public class HandshakeHandler extends DefaultHandshakeHandler{
         ServletServerHttpRequest servletServerRequest = (ServletServerHttpRequest) request;
 
         // Extract sessionId from the request's cookies
-        Optional<String> sessionId = extractSessionId(servletServerRequest);
+        Optional<String> sessionId = Utils.extractSessionId(servletServerRequest);
 
         System.out.println("sessionId: " + sessionId);
 
@@ -55,11 +56,4 @@ public class HandshakeHandler extends DefaultHandshakeHandler{
         return principal;
     }
 
-    private Optional<String> extractSessionId(ServletServerHttpRequest request) {
-        var cookies = (request.getServletRequest().getCookies());
-        return cookies == null ? Optional.empty() : Arrays.stream(cookies)
-                .filter(cookie -> cookie.getName().equals("sId"))
-                .findFirst()
-                .map(Cookie::getValue);
-    }
 }

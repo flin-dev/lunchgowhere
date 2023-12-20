@@ -1,7 +1,7 @@
 package app.lunchgowhere.config;
 
 
-import app.lunchgowhere.interceptor.HandshakeHandler;
+import app.lunchgowhere.interceptor.WebSocketHandshakeHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -14,18 +14,18 @@ import org.springframework.web.socket.config.annotation.*;
 @CrossOrigin(origins = "*")
 public class  WebSocketConfig implements WebSocketMessageBrokerConfigurer  {
 
-    private final HandshakeHandler handshakeHandler;
+    private final WebSocketHandshakeHandler webSocketHandshakeHandler;
 
     @Autowired
-    public WebSocketConfig(HandshakeHandler handshakeHandler) {
-        this.handshakeHandler = handshakeHandler;
+    public WebSocketConfig(WebSocketHandshakeHandler webSocketHandshakeHandler) {
+        this.webSocketHandshakeHandler = webSocketHandshakeHandler;
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
 //        registry.addEndpoint("/ws").setAllowedOrigins("http://localhost:3000/").setAllowedOriginPatterns("*");
         registry.addEndpoint("/sock")
-                .setHandshakeHandler(handshakeHandler)
+                .setHandshakeHandler(webSocketHandshakeHandler)
                 .setAllowedOriginPatterns("*").withSockJS();
     }
 
