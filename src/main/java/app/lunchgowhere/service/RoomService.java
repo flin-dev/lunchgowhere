@@ -1,4 +1,4 @@
-package app.lunchgowhere.service.RoomService;
+package app.lunchgowhere.service;
 
 import app.lunchgowhere.dto.request.LocationSubmissionDto;
 import app.lunchgowhere.dto.request.RoomDto;

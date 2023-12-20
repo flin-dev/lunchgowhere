@@ -1,16 +1,11 @@
-package app.lunchgowhere.service.RoomService.impl;
+package app.lunchgowhere.service;
 
 import app.lunchgowhere.model.LocationSubmission;
 import app.lunchgowhere.dto.request.LocationSubmissionDto;
 import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.model.Room;
-import app.lunchgowhere.model.User;
 import app.lunchgowhere.repository.LocationSubmissionRepository;
 import app.lunchgowhere.repository.RoomRepository;
-import app.lunchgowhere.service.RoomService.RoomService;
-import app.lunchgowhere.service.UserService;
-import jakarta.transaction.Transactional;
-import org.postgresql.util.PSQLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -19,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

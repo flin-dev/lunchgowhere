@@ -7,7 +7,7 @@ import app.lunchgowhere.exception.MessageException;
 import app.lunchgowhere.exception.RoomException;
 import app.lunchgowhere.model.LocationSubmission;
 import app.lunchgowhere.model.Room;
-import app.lunchgowhere.service.RoomService.RoomService;
+import app.lunchgowhere.service.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
