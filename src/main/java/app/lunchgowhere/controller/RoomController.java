@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,13 +22,12 @@ import org.springframework.messaging.handler.annotation.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.WebUtils;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @Slf4j
@@ -53,12 +53,12 @@ public class RoomController {
 
     @Operation(summary = "Get Rooms", description = "Get Rooms listing with pagination")
     @ApiResponse(responseCode = "200", description = "Get Rooms successfully",
-            content = {@Content(mediaType = "application/json", schema = @Schema(implementation = Room.class))})
+            content = {@Content(mediaType = "application/json")})
     @ApiResponse(responseCode = "400", description = "Bad Request")
     @ApiResponse(responseCode = "500", description = "Internal Server Error")
     @GetMapping("/rooms")
-        public ResponseEntity<Page<List<Room>>> getRooms(@RequestParam(defaultValue = "0") @Min(0) int pageNum,
-                                                     @RequestParam(defaultValue = "10") @Min(1) int pageSize) {
+    public ResponseEntity<Page<List<Room>>> getRooms(@RequestParam(defaultValue = "0") int pageNum,
+                                                     @RequestParam(defaultValue = "10") int pageSize) {
         //get room with pageable that get pageNum and pagesize from request
         var rooms = roomService.getRooms(pageNum, pageSize);
         return ResponseEntity.ok(rooms);
@@ -70,7 +70,7 @@ public class RoomController {
     @ApiResponse(responseCode = "400", description = "Bad Request")
     @ApiResponse(responseCode = "500", description = "Internal Server Error")
     @GetMapping("/room/{roomId}")
-    public ResponseEntity<Room> getRoom(@PathVariable @Min(0) Long roomId) {
+    public ResponseEntity<Room> getRoom(@PathVariable Long roomId) {
         var room = roomService.getRoom(roomId);
         return ResponseEntity.ok(room);
     }
@@ -81,8 +81,14 @@ public class RoomController {
             content = {@Content(mediaType = "application/json", schema = @Schema(implementation = Room.class))})
     @ApiResponse(responseCode = "400", description = "Bad Request")
     @ApiResponse(responseCode = "500", description = "Internal Server Error")
-    public ResponseEntity<Room> createRoom(@RequestParam RoomDto roomDto) {
-        var savedRoom = roomService.createRoom(roomDto);
+    @PostMapping("/room")
+    public ResponseEntity<Room> createRoom(@RequestBody RoomDto roomDto, HttpServletRequest request) {
+            var sessionId = Objects.requireNonNull(WebUtils.getCookie(request, "sId")).getValue();
+        if (sessionId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        var username = redisTemplate.opsForValue().get("USERSESSION:" + sessionId);
+        var savedRoom = roomService.createRoom(roomDto, username);
         return ResponseEntity.ok(savedRoom);
     }
 
@@ -129,7 +135,7 @@ public class RoomController {
     }
 
     //capture subscribe event of /room/{roomId}/chat and set userId to redis ROOMID:ONLINE:USER capture online users
-            @SubscribeMapping("/room/{roomId}/chat")
+    @SubscribeMapping("/room/{roomId}/chat")
     public void subscribe(@DestinationVariable String roomId, Principal principal) throws Exception {
         //check if room key exist in redis
         var exist = redisTemplate.opsForValue().get("ROOM:" + roomId);

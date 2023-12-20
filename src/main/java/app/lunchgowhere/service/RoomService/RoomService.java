@@ -4,6 +4,7 @@ import app.lunchgowhere.dto.request.LocationSubmissionDto;
 import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.model.LocationSubmission;
 import app.lunchgowhere.model.Room;
+import app.lunchgowhere.model.User;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -17,7 +18,7 @@ public interface RoomService {
 
     Room getRoom(Long roomId);
 
-    Room createRoom(RoomDto room);
+    Room createRoom(RoomDto room, String roomOwnerUsername);
 
     Boolean closeRoom(String roomId, String Sender);
 

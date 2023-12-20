@@ -4,8 +4,10 @@ import app.lunchgowhere.model.LocationSubmission;
 import app.lunchgowhere.dto.request.LocationSubmissionDto;
 import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.model.Room;
+import app.lunchgowhere.model.User;
 import app.lunchgowhere.repository.RoomRepository;
 import app.lunchgowhere.service.RoomService.RoomService;
+import app.lunchgowhere.service.UserService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +29,9 @@ public class RoomServiceImpl implements RoomService {
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private RoomRepository roomRepository;
@@ -47,16 +56,21 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public Room createRoom(RoomDto roomDto) {
+    public Room createRoom(RoomDto roomDto, String roomOwnerUsername) {
         var room = new Room();
         room.setName(roomDto.getName());
         room.setDescription(roomDto.getDescription());
 
+        var user = userService.getUserByUsername(roomOwnerUsername);
+        room.setRoomOwner(user);
+
         //convert timestamp string to date
         try {
-            var convertedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-                    .parse(roomDto.getTargetTime());
-            room.setTargetTime(convertedDate);
+            LocalDateTime localDateTime = LocalDateTime.parse(roomDto.getTargetTime());
+            Instant instant = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
+            Date date = Date.from(instant);
+            room.setTargetTime(date);
+            room.setIsActive(!date.before(new Date()));
         } catch (Exception e) {
             return null;
         }

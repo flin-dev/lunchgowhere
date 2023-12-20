@@ -10,4 +10,5 @@ public class RoomDto {
     public String targetTime;
 
     public String description;
+
 }

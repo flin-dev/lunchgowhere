@@ -32,7 +32,7 @@ public class Room extends AuditModel {
     Boolean isActive;
 
     //room owner
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "owner_id")
     User roomOwner;
 
