@@ -23,4 +23,6 @@ public interface RoomService {
     Boolean closeRoom(String roomId, String Sender);
 
     Optional<LocationSubmission> closeAndPickLocation(String roomId, String name);
+
+    LocationSubmission createLocationSubmission(LocationSubmissionDto locationSubmissionDto, String username);
 }

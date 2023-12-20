@@ -5,6 +5,7 @@ import app.lunchgowhere.dto.request.LocationSubmissionDto;
 import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.model.Room;
 import app.lunchgowhere.model.User;
+import app.lunchgowhere.repository.LocationSubmissionRepository;
 import app.lunchgowhere.repository.RoomRepository;
 import app.lunchgowhere.service.RoomService.RoomService;
 import app.lunchgowhere.service.UserService;
@@ -36,12 +37,15 @@ public class RoomServiceImpl implements RoomService {
     @Autowired
     private RoomRepository roomRepository;
 
+    @Autowired
+    private LocationSubmissionRepository locationSubmissionRepository;
+
     @Override
     public Boolean verifyLocation(LocationSubmissionDto message) {
         var exist = redisTemplate.opsForSet().isMember("user", message.getSender());
         if (Boolean.FALSE.equals(exist)) return false;
 
-        return !message.getReason().isEmpty() && !message.getStoreName().isEmpty();
+        return !message.getReason().isEmpty() && !message.getName().isEmpty();
     }
 
     @Override
@@ -107,5 +111,21 @@ public class RoomServiceImpl implements RoomService {
             return Optional.of(pickedLocation);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public LocationSubmission createLocationSubmission(LocationSubmissionDto locationSubmissionDto, String username) {
+
+        var room = roomRepository.findById(locationSubmissionDto.getRoomId()).orElseThrow();
+        var user = userService.getUserByUsername(username);
+
+        var locationSubmission = new LocationSubmission();
+        locationSubmission.setReason(locationSubmissionDto.getReason());
+        locationSubmission.setDescription(locationSubmissionDto.getDescription());
+        locationSubmission.setName(locationSubmissionDto.getName());
+        locationSubmission.setSummiter(user);
+        locationSubmission.setRoom(room);
+
+        return locationSubmissionRepository.save(locationSubmission);
     }
 }

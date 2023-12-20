@@ -43,14 +43,6 @@ public class RoomController {
     private RedisTemplate<String, String> redisTemplate;
 
 
-    //sample for stomp message forwarding
-//    @MessageMapping("/hello")
-//    @SendTo("/topic/greetings")
-//    public greeting(LocationSubmission message) throws Exception {
-//        Thread.sleep(1000); // simulated delay
-//        return new Greeting("Hello, " + "nice " + "!");
-//    }x`
-
     @Operation(summary = "Get Rooms", description = "Get Rooms listing with pagination")
     @ApiResponse(responseCode = "200", description = "Get Rooms successfully",
             content = {@Content(mediaType = "application/json")})
@@ -83,7 +75,8 @@ public class RoomController {
     @ApiResponse(responseCode = "500", description = "Internal Server Error")
     @PostMapping("/room")
     public ResponseEntity<Room> createRoom(@RequestBody RoomDto roomDto, HttpServletRequest request) {
-            var sessionId = Objects.requireNonNull(WebUtils.getCookie(request, "sId")).getValue();
+        //TODO move to interceptor
+        var sessionId = Objects.requireNonNull(WebUtils.getCookie(request, "sId")).getValue();
         if (sessionId == null) {
             return ResponseEntity.status(401).build();
         }
@@ -91,22 +84,37 @@ public class RoomController {
         var savedRoom = roomService.createRoom(roomDto, username);
         return ResponseEntity.ok(savedRoom);
     }
+    @GetMapping("/room/{roomId}")
+    public ResponseEntity<Void> createLocationSubmission(@PathVariable Long roomId, @RequestBody LocationSubmissionDto locationSubmissionDto, HttpServletRequest request) {
+        //TODO move to interceptor
+        var sessionId = Objects.requireNonNull(WebUtils.getCookie(request, "sId")).getValue();
+        if (sessionId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        var username = redisTemplate.opsForValue().get("USERSESSION:" + sessionId);
+        locationSubmissionDto.setRoomId(roomId);
+        var locationSubmission = roomService.createLocationSubmission(locationSubmissionDto, username);
+//        var savedRoom = roomService.createRoom(roomDto, username);
+
+        return ResponseEntity.status(201).build();
+    }
 
 
 //-------------------------web socket related implementation-------------------------
-    @MessageMapping("/room/{roomId}/submission")
-    public void submitLocation(@DestinationVariable String roomId, @Payload LocationSubmissionDto message) throws Exception {
-        log.info("Received message: {}", message);
-
-        var result = roomService.verifyLocation(message.getEscapedObject());
-
-        if (!result) {
-            log.info("Message rejected: {}", message);
-            return;
-        }
-
-        template.convertAndSend("/room/" + roomId + "/location", message);
-    }
+// use post method to handle instead of web socket submission
+//    @MessageMapping("/room/{roomId}/submission")
+//    public void submitLocation(@DestinationVariable String roomId, @Payload LocationSubmissionDto message) throws Exception {
+//        log.info("Received message: {}", message);
+//
+//        var result = roomService.verifyLocation(message.getEscapedObject());
+//
+//        if (!result) {
+//            log.info("Message rejected: {}", message);
+//            return;
+//        }
+//
+//        template.convertAndSend("/room/" + roomId + "/location", message);
+//    }
 
     @MessageMapping("/room/{roomId}/close")
     public void submitLocation(@DestinationVariable String roomId, Principal principal) throws Exception {

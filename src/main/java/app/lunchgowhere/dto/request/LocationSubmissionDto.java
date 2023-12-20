@@ -10,9 +10,13 @@ import org.springframework.web.util.HtmlUtils;
 @Builder
 public class LocationSubmissionDto {
 
+    private Long roomId;
+
     private String reason;
 
-    private String storeName;
+    private String description;
+
+    private String name;
 
     private String sender;
 
@@ -30,8 +34,9 @@ public class LocationSubmissionDto {
 
     @JsonIgnore
     public void htmlEscape() {
+        this.description = HtmlUtils.htmlEscape(this.description);
         this.reason = HtmlUtils.htmlEscape(this.reason);
-        this.storeName = HtmlUtils.htmlEscape(this.storeName);
+        this.name = HtmlUtils.htmlEscape(this.name);
         this.sender = HtmlUtils.htmlEscape(this.sender);
     }
 }

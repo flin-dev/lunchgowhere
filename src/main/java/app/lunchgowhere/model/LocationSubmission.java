@@ -16,14 +16,14 @@ public class LocationSubmission extends AuditModel {
     @JoinColumn(name = "room_id", insertable = false, updatable = false) // Maps to Room's ID
     Room room;
 
-//    @Column(name = "room_id", nullable = false)
-//    Long roomId;
-
     @Column(name = "location", nullable = false)
-    String location;
+    String name;
 
     @Column(name = "reason", nullable = true)
     String reason;
+
+    @Column(name = "description", nullable = true)
+    String description;
 
     @OneToOne(cascade = CascadeType.ALL)
     User summiter;
