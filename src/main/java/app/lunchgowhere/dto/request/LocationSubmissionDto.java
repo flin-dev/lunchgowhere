@@ -1,20 +1,26 @@
 package app.lunchgowhere.dto.request;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.web.util.HtmlUtils;
 
 @Data
 @Builder
-public class LocationSubmission  {
+public class LocationSubmissionDto {
 
     private String reason;
+
     private String storeName;
+
     private String sender;
+
+
     private boolean isEscaped = false;
 
-    public LocationSubmission getEscapedObject() {
+    @JsonIgnore
+    public LocationSubmissionDto getEscapedObject() {
            if(!isEscaped) {
                htmlEscape();
                isEscaped = true;
@@ -22,6 +28,7 @@ public class LocationSubmission  {
            return this;
     }
 
+    @JsonIgnore
     public void htmlEscape() {
         this.reason = HtmlUtils.htmlEscape(this.reason);
         this.storeName = HtmlUtils.htmlEscape(this.storeName);

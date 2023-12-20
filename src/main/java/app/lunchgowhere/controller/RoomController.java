@@ -1,8 +1,10 @@
 package app.lunchgowhere.controller;
 
-import app.lunchgowhere.dto.request.LocationSubmission;
+import app.lunchgowhere.dto.request.LocationSubmissionDto;
+import app.lunchgowhere.dto.request.MessageDto;
 import app.lunchgowhere.dto.request.RoomDto;
 import app.lunchgowhere.exception.MessageException;
+import app.lunchgowhere.exception.RoomException;
 import app.lunchgowhere.model.Room;
 import app.lunchgowhere.service.RoomService.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Date;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -36,6 +38,8 @@ public class RoomController {
 
     @Autowired
     private RoomService roomService;
+
+    @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
 
@@ -45,7 +49,7 @@ public class RoomController {
 //    public greeting(LocationSubmission message) throws Exception {
 //        Thread.sleep(1000); // simulated delay
 //        return new Greeting("Hello, " + "nice " + "!");
-//    }
+//    }x`
 
     @Operation(summary = "Get Rooms", description = "Get Rooms listing with pagination")
     @ApiResponse(responseCode = "200", description = "Get Rooms successfully",
@@ -53,7 +57,7 @@ public class RoomController {
     @ApiResponse(responseCode = "400", description = "Bad Request")
     @ApiResponse(responseCode = "500", description = "Internal Server Error")
     @GetMapping("/rooms")
-    public ResponseEntity<Page<List<Room>>> getRooms(@RequestParam(defaultValue = "0") @Min(0) int pageNum,
+        public ResponseEntity<Page<List<Room>>> getRooms(@RequestParam(defaultValue = "0") @Min(0) int pageNum,
                                                      @RequestParam(defaultValue = "10") @Min(1) int pageSize) {
         //get room with pageable that get pageNum and pagesize from request
         var rooms = roomService.getRooms(pageNum, pageSize);
@@ -85,7 +89,7 @@ public class RoomController {
 
 //-------------------------web socket related implementation-------------------------
     @MessageMapping("/room/{roomId}/submission")
-    public void submitLocation(@DestinationVariable String roomId, @Payload LocationSubmission message) throws Exception {
+    public void submitLocation(@DestinationVariable String roomId, @Payload LocationSubmissionDto message) throws Exception {
         log.info("Received message: {}", message);
 
         var result = roomService.verifyLocation(message.getEscapedObject());
@@ -98,35 +102,55 @@ public class RoomController {
         template.convertAndSend("/room/" + roomId + "/location", message);
     }
 
+    @MessageMapping("/room/{roomId}/close")
+    public void submitLocation(@DestinationVariable String roomId, Principal principal) throws Exception {
+        log.info("Room closed: room id {}", roomId);
+
+        var selectedLocation = roomService.closeAndPickLocation(roomId, principal.getName());
+
+
+        //throw room exception if room permission denied
+        if (selectedLocation.isEmpty()) {
+            throw new MessageException("Room permission denied");
+        }
+
+        //TODO send close message to all users in the room
+        //define the endpoint latter
+//        template.convertAndSend("/room/" + roomId + "/submission/close", selectedLocation.get());
+    }
+
+
     //forward normal chat message to all users in the room
     @MessageMapping("/room/{roomId}/chat")
-    public void chat(@DestinationVariable String roomId, @Payload LocationSubmission message) throws Exception {
+    public void chat(@DestinationVariable String roomId, @Payload MessageDto message) throws Exception {
         log.info("Received message: {}", message);
+        template.convertAndSend("/app/room/" + roomId + "/chat", message);
         template.convertAndSend("/room/" + roomId + "/chat", message);
     }
 
-    //capture subcribe event of /room/{roomId}/chat and set userId to redis ROOMID:ONLINE:USER capture online users
-    @SubscribeMapping("/room/{roomId}/chat")
-    public void subscribe(@DestinationVariable String roomId, @Payload LocationSubmission message) throws Exception {
+    //capture subscribe event of /room/{roomId}/chat and set userId to redis ROOMID:ONLINE:USER capture online users
+            @SubscribeMapping("/room/{roomId}/chat")
+    public void subscribe(@DestinationVariable String roomId, Principal principal) throws Exception {
         //check if room key exist in redis
-        var exist = redisTemplate.opsForValue().get("ROOM:"+roomId);
-
-        redisTemplate.opsForSet().add(roomId + ":ONLINE:USER", message.getSender());
-        log.info("Received message: {}", message);
-        template.convertAndSend("/room/" + roomId + "/chat", message);
+        var exist = redisTemplate.opsForValue().get("ROOM:" + roomId);
+        //add user to room's online user list
+        redisTemplate.opsForSet().add("ROOM:" + roomId + ":ONLINE", principal.getName());
+        //add roomId to user's joined room list
+        redisTemplate.opsForSet().add("USER:" + principal.getName() + ":ROOMS", roomId);
+        log.info("New user {} joined room {}", principal.getName(), roomId);
     }
 
-    //handle room related exception and send message to user topic /room/error to notify user
-    @MessageExceptionHandler
+    @MessageExceptionHandler(RoomException.class)
+    @SendToUser("/room/error")
+    public String handleRoomException(Throwable exception) {
+        return "Server Error";
+    }
+
+    //handle room's message related exception and send message to user topic /room/error to notify user
+    @MessageExceptionHandler(MessageException.class)
     @SendToUser("/room/error")
     public String handleException(Throwable exception) {
-
-        if (exception instanceof MessageException) {
-            return exception.getMessage();
-        } else {
-            return "Server Error";
-        }
+        return "Server Error";
     }
-
 
 }
